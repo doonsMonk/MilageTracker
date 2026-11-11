@@ -1,0 +1,14 @@
+# Build output and machine-specific files
+.gradle/
+build/
+local.properties
+*.apk
+*.keystore
+*.jks
+
+# Personal data: the log imported from the spreadsheet, its car photo, and any exports/backups
+app/src/main/assets/www/seed.js
+app/src/main/assets/www/car.jpg
+*.xlsx
+mileage-log*.json
+milagetracker-backup-*

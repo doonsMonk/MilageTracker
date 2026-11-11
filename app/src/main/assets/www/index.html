@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>MilageTracker</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div id="app">
+  <header id="topbar">
+    <div id="vehBtn">
+      <div id="title">MilageTracker</div>
+      <div id="subtitle"></div>
+    </div>
+    <button id="printBtn" class="icon-btn" aria-label="Print report">
+      <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M19 8H5a3 3 0 0 0-3 3v6h4v4h12v-4h4v-6a3 3 0 0 0-3-3zm-3 11H8v-5h8v5zm3-7a1 1 0 1 1 0-2 1 1 0 0 1 0 2zM18 3H6v4h12V3z"/></svg>
+    </button>
+  </header>
+
+  <main id="view"></main>
+
+  <button id="fab" aria-label="Add entry">+</button>
+
+  <nav id="tabs">
+    <button data-tab="home"><svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg><span>Home</span></button>
+    <button data-tab="log"><svg viewBox="0 0 24 24"><path d="M4 5h16v2H4zm0 6h16v2H4zm0 6h16v2H4z"/></svg><span>Log</span></button>
+    <button data-tab="monthly"><svg viewBox="0 0 24 24"><path d="M7 2v2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2V2h-2v2H9V2zm12 8v10H5V10z"/></svg><span>Monthly</span></button>
+    <button data-tab="trip"><svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg><span>Trip</span></button>
+    <button data-tab="more"><svg viewBox="0 0 24 24"><path d="M5 10a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm7 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm7 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"/></svg><span>More</span></button>
+  </nav>
+
+  <div id="scrim" hidden></div>
+  <section id="sheet" hidden></section>
+  <div id="toast" hidden></div>
+</div>
+
+<!-- Print preview / printable report. Only this is visible when printing. -->
+<div id="printWrap" hidden>
+  <div id="printBar">
+    <button id="printClose" class="btn ghost">Close</button>
+    <button id="printGo" class="btn primary">Print / Save PDF</button>
+  </div>
+  <div id="printArea"></div>
+</div>
+
+<!-- Full-screen bill photo viewer -->
+<div id="viewer" hidden>
+  <div id="viewerBar">
+    <button id="viewerClose" class="btn">Close</button>
+    <button id="viewerRemove" class="btn">Remove photo</button>
+  </div>
+  <div id="viewerImg"></div>
+</div>
+
+<script src="seed.js"></script>
+<script src="calc.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
