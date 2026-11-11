@@ -24,3 +24,9 @@ dependencies {
     // Google sign-in / authorization for Drive sync
     implementation 'com.google.android.gms:play-services-auth:21.3.0'
 }
+
+// Build without the personal starting data:  gradlew assembleDebug -PnoPersonalData
+// (used for the APK published in /release)
+if (project.hasProperty('noPersonalData')) {
+    android.androidResources.ignoreAssetsPattern = '!seed.js:!car.jpg:!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+}

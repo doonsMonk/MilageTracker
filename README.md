@@ -10,6 +10,12 @@ Android app for tracking fuel mileage and running costs of cars and motorcycles.
 - Multiple vehicles, light/dark theme
 - Optional Google Drive sync (log and bill photos)
 
+## Install
+
+Download the latest APK from the [release](release) folder on your Android phone (Android 10 or newer) and open it.
+Android will ask you to allow installing apps from your browser or file manager the first time.
+The published APK contains no log data and starts with one empty vehicle.
+
 ## How it is built
 
 The UI is plain HTML/CSS/JS in `app/src/main/assets/www`, hosted in a small native shell
