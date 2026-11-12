@@ -12,8 +12,12 @@ Android app for tracking fuel mileage and running costs of cars and motorcycles.
 
 ## Install
 
-Download the latest APK from the [release](release) folder on your Android phone (Android 10 or newer) and open it.
-Android will ask you to allow installing apps from your browser or file manager the first time.
+The latest build is in the [release](release/) folder of this repository:
+
+- [MilageTracker-1.4.apk](https://github.com/doonsMonk/MilageTracker/raw/main/release/MilageTracker-1.4.apk)
+
+On the phone (Android 10 or newer), tap the link above to download the file, open it, and allow
+installing from this source when Android asks. Later versions install over the existing app and keep its data.
 The published APK contains no log data and starts with one empty vehicle.
 
 ## How it is built
