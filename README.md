@@ -48,3 +48,7 @@ are git-ignored; without them the app starts with one empty vehicle.
 Sync needs your own Google Cloud project: enable the Google Drive API, configure the OAuth
 consent screen with the `drive.file` scope, and create an **Android** OAuth client for package
 `app.mileagelog` with the SHA-1 of the key that signs your build.
+
+## License
+
+[MIT](LICENSE)
