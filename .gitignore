@@ -13,3 +13,4 @@ app/src/main/assets/www/car.jpg
 *.xlsx
 mileage-log*.json
 milagetracker-backup-*
+keystore.properties

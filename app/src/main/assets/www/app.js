@@ -350,7 +350,8 @@
         mi('xRestore', 'Restore from backup', 'Replaces the data in the app') + '</div></div>' +
       '<div class="card"><h2>Data</h2><div class="menu">' +
         mi('odo', 'Update odometer', esc(veh.name) + ' · ' + n(data.totals.odoNow) + ' km') +
-        '<button id="wipe" class="dangerous"><span>Delete all data</span></button></div></div>';
+        '<button id="wipe" class="dangerous"><span>Delete all data</span></button></div></div>' +
+      updateCardHtml();
     $('#pFull').onclick = function () { showReport('full'); };
     $('#pMonthly').onclick = function () { showReport('monthly'); };
     $('#pMonth').onclick = pickMonthSheet;
@@ -360,6 +361,7 @@
       b.onclick = function () { state.settings.theme = b.dataset.th; applyTheme(); commit(); };
     });
     bindCloudCard();
+    bindUpdateCard();
     $('#xBackup').onclick = function () { if (native) { native.saveBackupZip('milagetracker-backup-' + today() + '.zip'); return; } saveFile('milagetracker-backup-' + today() + '.json', 'application/json', JSON.stringify(state, null, 1)); };
     $('#xRestore').onclick = pickFile;
     Array.prototype.forEach.call(view.querySelectorAll('[data-veh]'), function (b) { b.onclick = function () { vehicleSheet(b.dataset.veh); }; });
@@ -731,6 +733,31 @@
     on('cRestore', function () { native.cloudRead(); });
     on('cOff', function () { native.cloudDisconnect(); });
   }
+  // ---------- app updates (latest release on GitHub) ----------
+  var upd = { state: 'idle' };
+  function updateCardHtml() {
+    if (!native || !native.appVersion) return '';
+    var ver = native.appVersion(), u = upd, row;
+    var mb = u.size ? (u.size / 1048576).toFixed(1) + ' MB ' : '';
+    if (u.state === 'available') row = mi('uInstall', 'Update to version ' + esc(u.latest), 'Downloads ' + mb + 'from GitHub and installs it. Your data is kept.');
+    else if (u.state === 'checking') row = mi('uBusy', 'Checking for updates…', '');
+    else if (u.state === 'downloading') row = mi('uBusy', 'Downloading version ' + esc(u.latest) + '…', (u.percent || 0) + '%');
+    else if (u.state === 'installing') row = mi('uBusy', 'Installing version ' + esc(u.latest) + '…', 'Confirm the update when Android asks');
+    else row = mi('uCheck', 'Check for updates', u.state === 'none' ? 'You have the latest version' : u.state === 'error' ? esc(u.error) : 'Looks for a newer version on GitHub');
+    return '<div class="card" id="updCard"><h2>App <small>version ' + esc(ver) + '</small></h2><div class="menu">' + row + '</div></div>';
+  }
+  function bindUpdateCard() {
+    if (!native || !native.appVersion) return;
+    var c = $('#uCheck'), i = $('#uInstall');
+    if (c) c.onclick = function () { native.updateCheck(); };
+    if (i) i.onclick = function () { native.updateInstall(); };
+  }
+  window.onUpdateStatus = function (s) {
+    upd = s;
+    var el = $('#updCard');
+    if (el) { el.outerHTML = updateCardHtml(); bindUpdateCard(); }
+  };
+
   window.onPhotosChanged = function () { if (sheet.hidden) render(); };
   window.onCloudStatus = function (s) { cloud = s; if (tab === 'more' && sheet.hidden) render(); };
   // Text of the connected cloud file arrived (after connecting to an existing file, or "Load data").

@@ -7,6 +7,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentSender;
 import android.content.SharedPreferences;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageInstaller;
+import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.database.Cursor;
 import android.graphics.Bitmap;
@@ -77,11 +80,14 @@ public class MainActivity extends Activity {
     private static final String BILLS_DIR = "bills";
     private static final String BILL_URL_PREFIX = "/android_asset/www/bills/";
     private static final int PHOTO_MAX_PX = 1600;
+    private static final String ACTION_INSTALL_STATUS = "app.mileagelog.INSTALL_STATUS";
     private static final int RW = Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION;
 
     private WebView web;
     private SharedPreferences prefs;
     private final ExecutorService io = Executors.newSingleThreadExecutor();
+    private final ExecutorService updates = Executors.newSingleThreadExecutor();
+    private volatile Updater.Release offered; // newer build found by the last check
     private String pendingSaveContent;
     private Uri cameraUri;
 
@@ -153,6 +159,12 @@ public class MainActivity extends Activity {
     public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
         js("window.onSystemTheme && window.onSystemTheme(" + isNight(newConfig) + ")");
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        if (ACTION_INSTALL_STATUS.equals(intent.getAction())) onInstallStatus(intent);
     }
 
     private static boolean isNight(Configuration c) {
@@ -503,6 +515,119 @@ public class MainActivity extends Activity {
         return e.getMessage() != null ? e.getMessage() : "Sync failed.";
     }
 
+    // ------------------------------------------------------------------ app updates (GitHub releases)
+
+    private String appVersion() {
+        try {
+            PackageInfo info = getPackageManager().getPackageInfo(getPackageName(), 0);
+            return info.versionName != null ? info.versionName : "";
+        } catch (PackageManager.NameNotFoundException e) {
+            return "";
+        }
+    }
+
+    private void notifyUpdate(String state, String latest, int percent, String error) {
+        try {
+            JSONObject o = new JSONObject().put("state", state).put("percent", percent);
+            Updater.Release r = offered;
+            if (latest != null) o.put("latest", latest);
+            if (r != null) o.put("size", r.size);
+            if (error != null) o.put("error", error);
+            js("window.onUpdateStatus && window.onUpdateStatus(" + o + ")");
+        } catch (JSONException ignored) {
+        }
+    }
+
+    private void updateCheck() {
+        notifyUpdate("checking", null, 0, null);
+        updates.execute(() -> {
+            try {
+                Updater.Release r = Updater.latest();
+                if (r != null && Updater.isNewer(r.version, appVersion())) {
+                    offered = r;
+                    notifyUpdate("available", r.version, 0, null);
+                } else {
+                    offered = null;
+                    notifyUpdate("none", null, 0, null);
+                }
+            } catch (IOException | RuntimeException e) {
+                notifyUpdate("error", null, 0, updateError(e));
+            }
+        });
+    }
+
+    private void updateInstall() {
+        final Updater.Release r = offered;
+        if (r == null) return;
+        notifyUpdate("downloading", r.version, 0, null);
+        updates.execute(() -> {
+            File dir = new File(getCacheDir(), "update");
+            File apk = new File(dir, "update.apk");
+            try {
+                dir.mkdirs();
+                Updater.download(r, apk, pct -> notifyUpdate("downloading", r.version, pct, null));
+                PackageInfo info = getPackageManager().getPackageArchiveInfo(apk.getPath(), 0);
+                if (info == null || !getPackageName().equals(info.packageName)) {
+                    throw new IOException("The downloaded file is not a MilageTracker update.");
+                }
+                notifyUpdate("installing", r.version, 100, null);
+                PackageInstaller installer = getPackageManager().getPackageInstaller();
+                PackageInstaller.SessionParams params =
+                        new PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL);
+                params.setAppPackageName(getPackageName());
+                int id = installer.createSession(params);
+                try (PackageInstaller.Session session = installer.openSession(id)) {
+                    try (InputStream in = new FileInputStream(apk);
+                         OutputStream out = session.openWrite("base.apk", 0, apk.length())) {
+                        copy(in, out);
+                        session.fsync(out);
+                    }
+                    // Android reports back here: first to ask the user to confirm, then with the result.
+                    Intent back = new Intent(this, MainActivity.class).setAction(ACTION_INSTALL_STATUS);
+                    PendingIntent pi = PendingIntent.getActivity(this, id, back,
+                            PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE);
+                    session.commit(pi.getIntentSender());
+                }
+            } catch (IOException | RuntimeException e) {
+                notifyUpdate("error", null, 0, updateError(e));
+            } finally {
+                apk.delete();
+            }
+        });
+    }
+
+    /** Called by Android's installer with the progress of the update started in updateInstall(). */
+    private void onInstallStatus(Intent intent) {
+        int status = intent.getIntExtra(PackageInstaller.EXTRA_STATUS, PackageInstaller.STATUS_FAILURE);
+        String latest = offered != null ? offered.version : null;
+        if (status == PackageInstaller.STATUS_PENDING_USER_ACTION) {
+            Intent confirm = intent.getParcelableExtra(Intent.EXTRA_INTENT);
+            try {
+                if (confirm != null) startActivity(confirm);
+            } catch (RuntimeException e) {
+                notifyUpdate("error", null, 0, "Android could not open the install screen.");
+            }
+        } else if (status == PackageInstaller.STATUS_SUCCESS) {
+            notifyUpdate("none", null, 0, null); // normally the app is restarted before this arrives
+        } else if (status == PackageInstaller.STATUS_FAILURE_ABORTED) {
+            notifyUpdate(latest != null ? "available" : "idle", latest, 0, null); // cancelled; offer it again
+        } else if (status == PackageInstaller.STATUS_FAILURE_CONFLICT || status == PackageInstaller.STATUS_FAILURE_INCOMPATIBLE) {
+            notifyUpdate("error", null, 0, "This copy of the app was signed differently from the published one, so Android will not update it. Back up your data, uninstall, and install the app from GitHub.");
+        } else if (status == PackageInstaller.STATUS_FAILURE_STORAGE) {
+            notifyUpdate("error", null, 0, "Not enough free space on the phone to install the update.");
+        } else {
+            String msg = intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE);
+            notifyUpdate("error", null, 0, "Android could not install the update" + (msg != null ? " (" + msg + ")." : "."));
+        }
+    }
+
+    private static String updateError(Throwable e) {
+        if (e instanceof UnknownHostException || e instanceof ConnectException || e instanceof SocketTimeoutException) {
+            return "No internet connection.";
+        }
+        return e.getMessage() != null ? e.getMessage() : "The update failed.";
+    }
+
     // ------------------------------------------------------------------ JS bridge
 
     /** Methods callable from the page as window.Android.*. They run on a background thread. */
@@ -582,6 +707,22 @@ public class MainActivity extends Activity {
         public void deleteAllPhotos() {
             File[] files = new File(getFilesDir(), BILLS_DIR).listFiles();
             if (files != null) for (File f : files) f.delete();
+        }
+
+        // --- app updates
+        @JavascriptInterface
+        public String appVersion() {
+            return MainActivity.this.appVersion();
+        }
+
+        @JavascriptInterface
+        public void updateCheck() {
+            MainActivity.this.updateCheck();
+        }
+
+        @JavascriptInterface
+        public void updateInstall() {
+            MainActivity.this.updateInstall();
         }
 
         // --- cloud (Google Drive)

@@ -3,6 +3,8 @@
 
     <!-- Only used for Google Drive sync -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- "Check for updates": reads the latest release from GitHub and hands it to Android's installer -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <application
         android:allowBackup="true"
@@ -13,6 +15,7 @@
             android:name=".MainActivity"
             android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboardHidden|uiMode"
             android:exported="true"
+            android:launchMode="singleTop"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

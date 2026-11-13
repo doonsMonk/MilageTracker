@@ -9,12 +9,13 @@ Android app for tracking fuel mileage and running costs of cars and motorcycles.
 - Bill photos attached to fill-ups and expenses
 - Multiple vehicles, light/dark theme
 - Optional Google Drive sync (log and bill photos)
+- Check for updates from inside the app (More → App)
 
 ## Install
 
 The latest build is in the [release](release/) folder of this repository:
 
-- [MilageTracker-1.4.apk](https://github.com/doonsMonk/MilageTracker/raw/main/release/MilageTracker-1.4.apk)
+- [MilageTracker-1.5.apk](https://github.com/doonsMonk/MilageTracker/raw/main/release/MilageTracker-1.5.apk)
 
 On the phone (Android 10 or newer), tap the link above to download the file, open it, and allow
 installing from this source when Android asks. Later versions install over the existing app and keep its data.

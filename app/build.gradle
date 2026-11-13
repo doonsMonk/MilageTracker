@@ -10,8 +10,32 @@ android {
         applicationId 'app.mileagelog'
         minSdk 29
         targetSdk 35
-        versionCode 5
-        versionName '1.4'
+        versionCode 6
+        versionName '1.5'
+    }
+
+    // Release signing. The key and its passwords live outside the repository, in
+    // ../signing/keystore.properties (storeFile, storePassword, keyAlias, keyPassword).
+    def keystoreProps = new Properties()
+    def keystoreFile = rootProject.file('../signing/keystore.properties')
+    if (keystoreFile.exists()) {
+        keystoreFile.withInputStream { keystoreProps.load(it) }
+        signingConfigs {
+            release {
+                storeFile file(keystoreProps['storeFile'])
+                storePassword keystoreProps['storePassword']
+                keyAlias keystoreProps['keyAlias']
+                keyPassword keystoreProps['keyPassword']
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            debuggable false
+            minifyEnabled false
+            if (keystoreFile.exists()) signingConfig signingConfigs.release
+        }
     }
 
     compileOptions {
